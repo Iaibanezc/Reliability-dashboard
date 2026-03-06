@@ -1,0 +1,933 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hitachi Mining — Dashboard de Confiabilidad</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=Bebas+Neue&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #f0f2f5;
+    --surface:   #ffffff;
+    --surface2:  #f7f8fa;
+    --border:    #dde1e9;
+    --border2:   #c8cdd8;
+    --hitachi:   #e8380d;      /* Hitachi red-orange */
+    --hitachi2:  #ff5c36;
+    --hitachi-bg:#fff2ef;
+    --hitachi-dim:#b02a0a;
+    --black:     #0d0f12;
+    --dark:      #1a1d24;
+    --text:      #1a1d24;
+    --text-mid:  #4a5268;
+    --text-dim:  #8891a8;
+    --green:     #16a34a;
+    --green-bg:  #f0fdf4;
+    --yellow:    #d97706;
+    --yellow-bg: #fffbeb;
+    --red:       #dc2626;
+    --red-bg:    #fef2f2;
+    --blue:      #2563eb;
+    --mono:      'IBM Plex Mono', monospace;
+    --display:   'Bebas Neue', sans-serif;
+    --sans:      'Rajdhani', sans-serif;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.06);
+    --shadow:    0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.04);
+    --shadow-lg: 0 8px 32px rgba(0,0,0,0.10);
+  }
+
+  * { margin:0; padding:0; box-sizing:border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+  }
+
+  /* ── HEADER ── */
+  header {
+    background: var(--black);
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+  }
+
+  .logo-area {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  /* Hitachi SVG Logo (inline recreation) */
+  .hitachi-logo {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .logo-divider {
+    width: 1px;
+    height: 28px;
+    background: #333;
+    margin: 0 0.75rem;
+  }
+
+  .logo-subtitle {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: #666;
+    letter-spacing: 0.2em;
+    line-height: 1.5;
+  }
+
+  .logo-subtitle strong {
+    color: var(--hitachi);
+    display: block;
+    font-size: 0.7rem;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .header-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 0.35rem 0.9rem;
+    font-family: var(--mono);
+    font-size: 0.7rem;
+    color: #aaa;
+    letter-spacing: 0.1em;
+  }
+
+  .dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 6px var(--green);
+    animation: blink 2s infinite;
+  }
+
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* ── SUBHEADER STRIP ── */
+  .subheader {
+    background: var(--hitachi);
+    padding: 0.4rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .subheader-left {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.85);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
+  .subheader-right {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: rgba(255,255,255,0.7);
+    letter-spacing: 0.15em;
+  }
+
+  /* ── MAIN ── */
+  main {
+    max-width: 1440px;
+    margin: 0 auto;
+    padding: 1.75rem 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  /* ── SECTION LABEL ── */
+  .sec-label {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: var(--hitachi);
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .sec-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* ── KPI CARDS ── */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1rem;
+  }
+
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-top: 3px solid var(--border2);
+    padding: 1.25rem 1.5rem;
+    box-shadow: var(--shadow-sm);
+    transition: box-shadow 0.2s, transform 0.2s;
+    animation: slideUp 0.5s ease both;
+  }
+
+  .kpi:nth-child(1) { animation-delay: 0.05s; border-top-color: var(--hitachi); }
+  .kpi:nth-child(2) { animation-delay: 0.1s;  border-top-color: var(--red); }
+  .kpi:nth-child(3) { animation-delay: 0.15s; border-top-color: var(--green); }
+  .kpi:nth-child(4) { animation-delay: 0.2s;  border-top-color: var(--blue); }
+
+  .kpi:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+
+  .kpi-label {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: var(--text-dim);
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    margin-bottom: 0.6rem;
+  }
+
+  .kpi-val {
+    font-family: var(--display);
+    font-size: 3rem;
+    line-height: 1;
+    color: var(--hitachi);
+    letter-spacing: 0.02em;
+  }
+
+  .kpi:nth-child(2) .kpi-val { color: var(--red); }
+  .kpi:nth-child(3) .kpi-val { color: var(--green); }
+  .kpi:nth-child(4) .kpi-val { color: var(--blue); }
+
+  .kpi-unit {
+    font-family: var(--mono);
+    font-size: 0.65rem;
+    color: var(--text-dim);
+    margin-top: 0.3rem;
+  }
+
+  /* ── PANEL ── */
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    animation: slideUp 0.5s ease both;
+  }
+
+  .panel-head {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface2);
+  }
+
+  .panel-title {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--dark);
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .panel-title::before {
+    content: '';
+    display: inline-block;
+    width: 4px;
+    height: 18px;
+    background: var(--hitachi);
+  }
+
+  .panel-body { padding: 1.5rem; }
+
+  .tag {
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    padding: 0.2rem 0.6rem;
+    border: 1px solid var(--border2);
+    color: var(--text-dim);
+    background: var(--bg);
+    text-transform: uppercase;
+  }
+
+  /* ── GRID ── */
+  .g2   { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem; }
+  .g3-1 { display: grid; grid-template-columns: 2fr 1fr; gap: 1.25rem; }
+
+  /* ── FORM ── */
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  .fg { display: flex; flex-direction: column; gap: 0.35rem; }
+  .fg.full { grid-column: 1 / -1; }
+
+  label {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: var(--text-mid);
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+  }
+
+  input, select, textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border2);
+    color: var(--text);
+    padding: 0.6rem 0.9rem;
+    font-family: var(--mono);
+    font-size: 0.82rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+    -webkit-appearance: none;
+    border-radius: 0;
+  }
+
+  input:focus, select:focus, textarea:focus {
+    border-color: var(--hitachi);
+    box-shadow: 0 0 0 3px rgba(232,56,13,0.1);
+    background: #fff;
+  }
+
+  .btn-primary {
+    background: var(--hitachi);
+    color: #fff;
+    border: none;
+    padding: 0.85rem 1.5rem;
+    font-family: var(--sans);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    cursor: pointer;
+    width: 100%;
+    margin-top: 0.5rem;
+    transition: background 0.2s, box-shadow 0.2s, transform 0.1s;
+  }
+
+  .btn-primary:hover { background: var(--hitachi-dim); box-shadow: 0 4px 16px rgba(232,56,13,0.3); transform: translateY(-1px); }
+  .btn-primary:active { transform: translateY(0); }
+
+  /* ── TABLE ── */
+  .tbl-wrap { overflow-x: auto; }
+
+  table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 0.75rem; }
+
+  thead { background: var(--dark); }
+
+  th {
+    color: #aaa;
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    padding: 0.8rem 1rem;
+    text-align: left;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+
+  th:first-child { color: var(--hitachi); }
+
+  td {
+    padding: 0.65rem 1rem;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-mid);
+    vertical-align: middle;
+    white-space: nowrap;
+  }
+
+  tr:hover td { background: var(--hitachi-bg); }
+  tr:last-child td { border-bottom: none; }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.2rem 0.6rem;
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    font-weight: 600;
+    font-family: var(--mono);
+  }
+
+  .badge-ok   { background: var(--green-bg);  color: var(--green); border: 1px solid #bbf7d0; }
+  .badge-warn { background: var(--yellow-bg); color: var(--yellow);border: 1px solid #fde68a; }
+  .badge-crit { background: var(--red-bg);    color: var(--red);   border: 1px solid #fecaca; }
+
+  .btn-del {
+    background: transparent;
+    border: 1px solid var(--border2);
+    color: var(--text-dim);
+    padding: 0.18rem 0.55rem;
+    font-family: var(--mono);
+    font-size: 0.6rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.1em;
+  }
+
+  .btn-del:hover { border-color: var(--red); color: var(--red); background: var(--red-bg); }
+
+  /* ── CHARTS ── */
+  .chart-box { position: relative; height: 260px; }
+
+  /* ── EQUIP LIST ── */
+  .eq-list { display: flex; flex-direction: column; gap: 0.6rem; }
+
+  .eq-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.85rem 1rem;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    transition: border-color 0.2s, box-shadow 0.2s;
+    gap: 1rem;
+  }
+
+  .eq-item:hover { border-color: var(--hitachi); box-shadow: var(--shadow-sm); }
+
+  .eq-name {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+    color: var(--dark);
+  }
+
+  .eq-meta {
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: var(--text-dim);
+    margin-top: 0.15rem;
+  }
+
+  .eq-bar { height: 4px; background: var(--border); margin-top: 0.5rem; width: 100%; }
+  .eq-fill { height: 100%; transition: width 0.7s cubic-bezier(.4,0,.2,1); }
+
+  .eq-pct {
+    font-family: var(--display);
+    font-size: 1.6rem;
+    line-height: 1;
+    min-width: 60px;
+    text-align: right;
+  }
+
+
+
+  /* ── EMPTY ── */
+  .empty { text-align: center; padding: 2.5rem; color: var(--text-dim); font-family: var(--mono); font-size: 0.75rem; letter-spacing: 0.1em; }
+
+  /* ── ANIMATIONS ── */
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  /* ── RESPONSIVE ── */
+  @media (max-width: 960px) {
+    .kpi-row { grid-template-columns: repeat(2, 1fr); }
+    .g2, .g3-1 { grid-template-columns: 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .comp-grid { grid-template-columns: repeat(3, 1fr); }
+  }
+
+  @media (max-width: 600px) {
+    main { padding: 1rem; }
+    header { padding: 0 1rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo-area">
+    <div class="hitachi-logo">
+      <img src="data:image/png;base64,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" alt="Hitachi" style="height:52px;object-fit:contain;background:#fff;padding:4px 8px;" />
+    </div>
+    <div class="logo-divider"></div>
+    <div class="logo-subtitle">
+      <strong>MINING RELIABILITY</strong>
+      Sistema de Gestión de Confiabilidad
+    </div>
+  </div>
+  <div class="header-right">
+    <div class="header-pill">
+      <div class="dot"></div>
+      <span id="clock">--:--:--</span>
+      &nbsp;·&nbsp; EN LÍNEA
+    </div>
+  </div>
+</header>
+
+<!-- SUBHEADER STRIP -->
+<div class="subheader">
+  <span class="subheader-left">▶ Camiones Mineros EH Series — Panel de Control KPI</span>
+  <span class="subheader-right" id="last-update">Última actualización: —</span>
+</div>
+
+<main>
+
+  <!-- KPIs -->
+  <div>
+    <div class="sec-label">▸ Indicadores de Confiabilidad Global</div>
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-label">MTBF Promedio</div>
+        <div class="kpi-val" id="kpi-mtbf">—</div>
+        <div class="kpi-unit">horas entre fallas</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">MTTR Promedio</div>
+        <div class="kpi-val" id="kpi-mttr">—</div>
+        <div class="kpi-unit">horas de reparación</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Disponibilidad</div>
+        <div class="kpi-val" id="kpi-disp">—</div>
+        <div class="kpi-unit">% disponibilidad global</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-label">Total Eventos</div>
+        <div class="kpi-val" id="kpi-total">—</div>
+        <div class="kpi-unit">fallas registradas</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CHARTS -->
+  <div class="g2">
+    <div class="panel" style="animation-delay:0.1s">
+      <div class="panel-head">
+        <div class="panel-title">Fallas por Componente</div>
+        <span class="tag">Barras</span>
+      </div>
+      <div class="panel-body">
+        <div class="chart-box"><canvas id="chartFallas"></canvas></div>
+      </div>
+    </div>
+    <div class="panel" style="animation-delay:0.15s">
+      <div class="panel-head">
+        <div class="panel-title">Tendencia de Disponibilidad</div>
+        <span class="tag">Línea temporal</span>
+      </div>
+      <div class="panel-body">
+        <div class="chart-box"><canvas id="chartDisp"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORM + EQUIPMENT -->
+  <div class="g3-1">
+    <!-- FORM -->
+    <div class="panel" style="animation-delay:0.2s">
+      <div class="panel-head">
+        <div class="panel-title">Registrar Evento de Falla</div>
+        <span class="tag">Nuevo registro</span>
+      </div>
+      <div class="panel-body">
+
+        <div class="form-grid">
+          <div class="fg">
+            <label>Número de Equipo (ID)</label>
+            <select id="f-equipo">
+              <option value="">-- Seleccionar equipo --</option>
+              <option value="EH5000-001">EH5000-001</option>
+              <option value="EH3500-002">EH3500-002</option>
+              <option value="EH4000-003">EH4000-003</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Componente Afectado</label>
+            <select id="f-comp">
+              <option value="">-- Seleccionar componente --</option>
+              <option value="Acumulador Direccion">Acumulador Direccion</option>
+              <option value="Acumulador Freno">Acumulador Freno</option>
+              <option value="Alternator">Alternator</option>
+              <option value="Blower Alternator">Blower Alternator</option>
+              <option value="Blower de Grilla">Blower de Grilla</option>
+              <option value="Blower Motor">Blower Motor</option>
+              <option value="Bomba de grasa">Bomba de grasa</option>
+              <option value="Bomba Gabinete">Bomba Gabinete</option>
+              <option value="Bomba Pistones">Bomba Pistones</option>
+              <option value="Cilindro Direccion">Cilindro Direccion</option>
+              <option value="Cilindro Levante">Cilindro Levante</option>
+              <option value="COMPRESOR A/A">COMPRESOR A/A</option>
+              <option value="Engine QSK60">Engine QSK60</option>
+              <option value="Gear Pump (Brake) - Enfriamiento">Gear Pump (Brake) - Enfriamiento</option>
+              <option value="Gear Pump (FD) - Engranaje">Gear Pump (FD) - Engranaje</option>
+              <option value="Gear Pump Motor (FD)">Gear Pump Motor (FD)</option>
+              <option value="Grid Box">Grid Box</option>
+              <option value="Mando Final">Mando Final</option>
+              <option value="Radiador Gabinete">Radiador Gabinete</option>
+              <option value="Radiator">Radiator</option>
+              <option value="Spindle">Spindle</option>
+              <option value="Suspension Frontal">Suspension Frontal</option>
+              <option value="Suspension Trasera">Suspension Trasera</option>
+              <option value="Tolva">Tolva</option>
+              <option value="Tren Frontal (Tijeras)">Tren Frontal (Tijeras)</option>
+              <option value="Wheel Motor">Wheel Motor</option>
+              <option value="IGBT">IGBT</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Fecha y Hora de Falla ★</label>
+            <input type="datetime-local" id="f-inicio" />
+          </div>
+          <div class="fg">
+            <label>Fecha y Hora de Restauración ★</label>
+            <input type="datetime-local" id="f-fin" />
+          </div>
+          <div class="fg">
+            <label>Causa Raíz</label>
+            <select id="f-causa">
+              <option value="Mecánica">Mecánica</option>
+              <option value="Eléctrica">Eléctrica</option>
+              <option value="Hidráulica">Hidráulica</option>
+              <option value="Desgaste">Desgaste</option>
+              <option value="Operacional">Operacional</option>
+              <option value="Externa">Externa / Ambiente</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label>Observaciones</label>
+            <input type="text" id="f-obs" placeholder="Descripción breve..." />
+          </div>
+        </div>
+        <button class="btn-primary" onclick="addEvent()">Registrar Falla</button>
+      </div>
+    </div>
+
+    <!-- EQUIPMENT STATUS -->
+    <div class="panel" style="animation-delay:0.25s">
+      <div class="panel-head">
+        <div class="panel-title">Estado de Equipos</div>
+      </div>
+      <div class="panel-body" style="padding: 1rem;">
+        <div class="eq-list" id="eq-list">
+          <div class="empty">SIN REGISTROS</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="panel" style="animation-delay:0.3s">
+    <div class="panel-head">
+      <div class="panel-title">Historial de Eventos</div>
+      <span class="tag" id="tag-count">0 REGISTROS</span>
+    </div>
+    <div class="panel-body" style="padding:0">
+      <div class="tbl-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Equipo</th>
+              <th>Componente</th>
+              <th>Causa</th>
+              <th>Falla</th>
+              <th>Restauración</th>
+              <th>MTTR (h)</th>
+              <th>Disponibilidad</th>
+              <th>Observaciones</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="tbl-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ─── STATE ────────────────────────────────────────────────────────────
+let events = [];
+let cFallas = null;
+let cDisp   = null;
+
+// ─── SEED DATA ────────────────────────────────────────────────────────
+const seed = [
+  // EH5000-001
+  { equipo:"EH5000-001", comp:"Suspensión",  causa:"Mecánica",  inicio:"2024-10-03T06:00", fin:"2024-10-03T14:30", obs:"Rotura de cilindro trasero derecho" },
+  { equipo:"EH5000-001", comp:"Motor",       causa:"Eléctrica", inicio:"2024-10-18T08:00", fin:"2024-10-18T13:00", obs:"Falla en sensor de temperatura" },
+  { equipo:"EH5000-001", comp:"Frenos",      causa:"Hidráulica",inicio:"2024-11-05T07:00", fin:"2024-11-05T11:30", obs:"Fuga en circuito hidráulico" },
+  { equipo:"EH5000-001", comp:"Alternador",  causa:"Eléctrica", inicio:"2024-11-22T09:30", fin:"2024-11-22T15:00", obs:"Devanado quemado" },
+  // EH3500-002
+  { equipo:"EH3500-002", comp:"Mando Final", causa:"Desgaste",  inicio:"2024-10-07T07:30", fin:"2024-10-08T10:00", obs:"Desgaste en engranajes planetarios" },
+  { equipo:"EH3500-002", comp:"Tolva",       causa:"Operacional",inicio:"2024-10-25T10:00",fin:"2024-10-25T14:00", obs:"Deformación por sobrecarga" },
+  { equipo:"EH3500-002", comp:"Motor",       causa:"Mecánica",  inicio:"2024-11-10T05:00", fin:"2024-11-11T08:00", obs:"Falla en inyectores" },
+  // EH4000-003
+  { equipo:"EH4000-003", comp:"Chasis",      causa:"Externa",   inicio:"2024-10-14T12:00", fin:"2024-10-14T18:00", obs:"Fisura por impacto de roca" },
+  { equipo:"EH4000-003", comp:"Suspensión",  causa:"Desgaste",  inicio:"2024-11-02T08:00", fin:"2024-11-02T16:00", obs:"Amortiguadores desgastados" },
+  { equipo:"EH4000-003", comp:"Frenos",      causa:"Mecánica",  inicio:"2024-11-28T06:30", fin:"2024-11-28T12:00", obs:"Pastillas de freno agotadas" },
+  { equipo:"EH4000-003", comp:"Alternador",  causa:"Eléctrica", inicio:"2024-12-05T09:00", fin:"2024-12-05T14:30", obs:"Rodamiento de alternador dañado" },
+];
+
+seed.forEach(d => {
+  events.push({ id: Date.now()+Math.random(), equipo:d.equipo, comp:d.comp, causa:d.causa,
+    inicio:new Date(d.inicio), fin:new Date(d.fin), obs:d.obs });
+});
+
+// ─── CLOCK ────────────────────────────────────────────────────────────
+function tick() {
+  const n = new Date();
+  document.getElementById('clock').textContent = n.toLocaleTimeString('es-CO',{hour12:false});
+}
+setInterval(tick,1000); tick();
+
+// ─── ADD EVENT ────────────────────────────────────────────────────────
+function addEvent() {
+  const equipo = document.getElementById('f-equipo').value.trim();
+  const comp   = document.getElementById('f-comp').value.trim();
+  const causa  = document.getElementById('f-causa').value;
+  const inicio = document.getElementById('f-inicio').value;
+  const fin    = document.getElementById('f-fin').value;
+  const obs    = document.getElementById('f-obs').value.trim();
+
+  if (!equipo || !inicio || !fin) {
+    alert('Campos obligatorios: Equipo, Fecha de Falla y Fecha de Restauración (★).');
+    return;
+  }
+  const di = new Date(inicio), df = new Date(fin);
+  if (df <= di) { alert('La restauración debe ser posterior a la falla.'); return; }
+
+  events.push({ id: Date.now(), equipo, comp: comp||'No especificado', causa, inicio:di, fin:df, obs });
+
+  ['f-equipo','f-comp','f-inicio','f-fin','f-obs'].forEach(id => document.getElementById(id).value='');
+  
+
+  document.getElementById('last-update').textContent =
+    'Última actualización: ' + new Date().toLocaleString('es-CO');
+  render();
+}
+
+function deleteEvent(id) {
+  events = events.filter(e => e.id !== id);
+  render();
+}
+
+// ─── CALCULATIONS ─────────────────────────────────────────────────────
+function globalKPIs() {
+  if (!events.length) return { mtbf:0, mttr:0, disp:0, total:0 };
+  const mttrArr = events.map(e => (e.fin - e.inicio)/3600000);
+  const avgMTTR = mttrArr.reduce((a,b)=>a+b,0) / mttrArr.length;
+  const dates   = events.flatMap(e=>[e.inicio,e.fin]);
+  const span    = (Math.max(...dates) - Math.min(...dates)) / 3600000 || 1;
+  const totalDT = mttrArr.reduce((a,b)=>a+b,0);
+  const uptime  = Math.max(span - totalDT, 0);
+  return {
+    mtbf: (uptime / events.length).toFixed(1),
+    mttr: avgMTTR.toFixed(1),
+    disp: ((uptime/span)*100).toFixed(1),
+    total: events.length
+  };
+}
+
+function byEquipo() {
+  const m = {};
+  events.forEach(e => {
+    if (!m[e.equipo]) m[e.equipo] = { fallas:0, downtime:0 };
+    m[e.equipo].fallas++;
+    m[e.equipo].downtime += (e.fin-e.inicio)/3600000;
+  });
+  const dates = events.flatMap(e=>[e.inicio,e.fin]);
+  const span  = (Math.max(...dates)-Math.min(...dates))/3600000||1;
+  return Object.entries(m).map(([name,d])=>({
+    name, fallas:d.fallas,
+    downtime: d.downtime.toFixed(1),
+    disp: (((span-d.downtime)/span)*100).toFixed(1)
+  }));
+}
+
+function byComp() {
+  const m = {};
+  events.forEach(e => { m[e.comp] = (m[e.comp]||0)+1; });
+  return Object.entries(m).sort((a,b)=>b[1]-a[1]);
+}
+
+function dispTrend() {
+  const m = {};
+  events.forEach(e => {
+    const k = `${e.inicio.getFullYear()}-${String(e.inicio.getMonth()+1).padStart(2,'0')}`;
+    if (!m[k]) m[k]=0;
+    m[k] += (e.fin-e.inicio)/3600000;
+  });
+  const h = 30*24;
+  return Object.entries(m).sort((a,b)=>a[0].localeCompare(b[0]))
+    .map(([month,dt])=>({ month, disp: Math.max(0,((h-dt)/h)*100).toFixed(1) }));
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────
+function render() {
+  const k = globalKPIs();
+  document.getElementById('kpi-mtbf').textContent  = k.mtbf;
+  document.getElementById('kpi-mttr').textContent  = k.mttr;
+  document.getElementById('kpi-disp').textContent  = k.disp+'%';
+  document.getElementById('kpi-total').textContent = k.total;
+
+  renderTable();
+  renderCharts();
+  renderEqList();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('tbl-body');
+  document.getElementById('tag-count').textContent = events.length + ' REGISTROS';
+  if (!events.length) {
+    tbody.innerHTML = `<tr><td colspan="10" class="empty">Sin registros — ingresa el primer evento de falla</td></tr>`;
+    return;
+  }
+  const fmt = dt => dt.toLocaleString('es-CO',{dateStyle:'short',timeStyle:'short'});
+  tbody.innerHTML = [...events].reverse().map((e,i) => {
+    const mttr = ((e.fin-e.inicio)/3600000).toFixed(1);
+    const disp = parseFloat(globalKPIs().disp);
+    const [bc,bl] = disp>=90?['badge-ok','NORMAL']:disp>=75?['badge-warn','ALERTA']:['badge-crit','CRÍTICO'];
+    return `
+      <tr>
+        <td style="color:var(--hitachi);font-weight:700">${events.length-i}</td>
+        <td style="color:var(--dark);font-weight:700">${e.equipo}</td>
+        <td style="color:var(--dark)">${e.comp}</td>
+        <td>${e.causa}</td>
+        <td>${fmt(e.inicio)}</td>
+        <td>${fmt(e.fin)}</td>
+        <td style="color:var(--red);font-weight:600">${mttr}h</td>
+        <td><span class="badge ${bc}">${bl}</span></td>
+        <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis">${e.obs||'—'}</td>
+        <td><button class="btn-del" onclick="deleteEvent(${e.id})">✕</button></td>
+      </tr>`;
+  }).join('');
+}
+
+function renderEqList() {
+  const list = document.getElementById('eq-list');
+  const data = byEquipo();
+  if (!data.length) { list.innerHTML = '<div class="empty">Sin registros</div>'; return; }
+  list.innerHTML = data.map(eq => {
+    const d = parseFloat(eq.disp);
+    const col = d>=90?'var(--green)':d>=75?'var(--yellow)':'var(--red)';
+    return `
+      <div class="eq-item">
+        <div style="flex:1">
+          <div class="eq-name">${eq.name}</div>
+          <div class="eq-meta">${eq.fallas} fallas · ${eq.downtime}h downtime</div>
+          <div class="eq-bar"><div class="eq-fill" style="width:${eq.disp}%;background:${col}"></div></div>
+        </div>
+        <div class="eq-pct" style="color:${col}">${eq.disp}%</div>
+      </div>`;
+  }).join('');
+}
+
+function renderCharts() {
+  const compData = byComp();
+  const trend    = dispTrend();
+
+  Chart.defaults.font = { family:"'IBM Plex Mono', monospace", size:11 };
+  Chart.defaults.color = '#8891a8';
+
+  // ── CHART FALLAS (barras) ──
+  if (cFallas) cFallas.destroy();
+  cFallas = new Chart(document.getElementById('chartFallas').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: compData.map(c=>c[0]),
+      datasets:[{
+        label:'Fallas',
+        data: compData.map(c=>c[1]),
+        backgroundColor: compData.map((_,i) =>
+          ['rgba(232,56,13,0.85)','rgba(232,56,13,0.7)','rgba(232,56,13,0.55)',
+           'rgba(232,56,13,0.4)','rgba(232,56,13,0.3)','rgba(232,56,13,0.2)',
+           'rgba(232,56,13,0.15)','rgba(232,56,13,0.1)'][i] || 'rgba(232,56,13,0.2)'),
+        borderColor: '#e8380d',
+        borderWidth: 1,
+        borderRadius: 3,
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{
+        x:{ grid:{color:'#dde1e9'}, ticks:{maxRotation:30} },
+        y:{ grid:{color:'#dde1e9'}, beginAtZero:true, ticks:{stepSize:1} }
+      }
+    }
+  });
+
+  // ── CHART DISPONIBILIDAD (línea) ──
+  if (cDisp) cDisp.destroy();
+  cDisp = new Chart(document.getElementById('chartDisp').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: trend.map(t=>t.month),
+      datasets:[{
+        label:'Disponibilidad %',
+        data: trend.map(t=>t.disp),
+        borderColor:'#e8380d',
+        backgroundColor:'rgba(232,56,13,0.06)',
+        borderWidth: 2.5,
+        pointBackgroundColor:'#e8380d',
+        pointBorderColor:'#fff',
+        pointBorderWidth: 2,
+        pointRadius: 6,
+        pointHoverRadius: 8,
+        fill: true,
+        tension: 0.35
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false},
+        tooltip:{ callbacks:{ label: ctx => ' '+ctx.parsed.y+'%' } }
+      },
+      scales:{
+        x:{ grid:{color:'#dde1e9'} },
+        y:{ grid:{color:'#dde1e9'}, min:50, max:100,
+          ticks:{ callback: v=>v+'%' }
+        }
+      }
+    }
+  });
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────
+document.getElementById('last-update').textContent =
+  'Última actualización: '+new Date().toLocaleString('es-CO');
+render();
+</script>
+</body>
+</html>
